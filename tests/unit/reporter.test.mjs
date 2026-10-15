@@ -82,4 +82,42 @@ describe('reporter', () => {
     expect(consoleLog).toHaveBeenCalledExactlyOnceWith(`\n${formatReport(result)}\n\n`);
     consoleLog.mockRestore();
   });
+
+  it.each([true, false])('omits GitHub semver prefixes with colour=%s', (colour) => {
+    const prefix = 'github:bbc/eslint-config-fabl#semver:';
+    const entry = packageEntry('eslint-config-fabl', { isMinor: true }, `${prefix}^1.1.0`);
+    entry.versions.current = `${prefix}^1.0.0`;
+    const majorEntry = packageEntry('eslint-config-fabl', { isMajor: true }, `${prefix}^2.0.0`);
+    majorEntry.versions.current = entry.versions.current;
+
+    const report = formatReport({
+      colour,
+      packagesToUpdate: [entry],
+      majorUpdates: [majorEntry],
+    });
+
+    expect(report).not.toContain(prefix);
+    expect(report).toContain('^1.0.0');
+    expect(report).toContain(colour ? '\x1b[36m^1.1.0\x1b[0m' : '^1.1.0');
+    expect(report).toContain(colour ? '\x1b[31m^2.0.0\x1b[0m' : '^2.0.0');
+    expect(entry.versions.current).toBe(`${prefix}^1.0.0`);
+    expect(entry.versions.target).toBe(`${prefix}^1.1.0`);
+    expect(majorEntry.versions.target).toBe(`${prefix}^2.0.0`);
+  });
+
+  it.each(['^1.0.0', 'github:bbc/eslint-config-fabl#main', 'git+https://github.com/bbc/repo#v1'])(
+    'preserves other version specifiers: %s',
+    (version) => {
+      const entry = packageEntry('package', {}, version);
+      entry.versions.current = version;
+
+      const report = formatReport({
+        colour: false,
+        packagesToUpdate: [entry],
+        majorUpdates: [],
+      });
+
+      expect(report.split(version)).toHaveLength(3);
+    },
+  );
 });

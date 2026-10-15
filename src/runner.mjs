@@ -4,6 +4,7 @@ import ncu from 'npm-check-updates';
 import { execSync } from 'node:child_process';
 import cooldownPeriod from './lib/cooldown.mjs';
 import ncuConfig from './lib/ncu-config.mjs';
+import { formatVersion } from './lib/version.mjs';
 
 const filterMajor = ({ major, minor, patch }) => {
   return Object.fromEntries(
@@ -157,10 +158,14 @@ export async function runCheck(config) {
         }
 
         // Success message
-        console.log(`  \x1b[32m✓\x1b[0m ${p.name} ${p.versions.target} successfully installed`);
+        console.log(
+          `  \x1b[32m✓\x1b[0m ${p.name} ${formatVersion(p.versions.target)} successfully installed`,
+        );
       } catch {
         // Failure message and script termination
-        console.error(`  \x1b[31m✗\x1b[0m ${p.name} ${p.versions.target} failed to install`);
+        console.error(
+          `  \x1b[31m✗\x1b[0m ${p.name} ${formatVersion(p.versions.target)} failed to install`,
+        );
         process.exit(1);
       }
     }

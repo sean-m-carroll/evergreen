@@ -167,6 +167,10 @@ The report displays a table with:
  - **Cooldown**
  - **Notes**
 
+For GitHub semver dependencies, reports and install messages show only the version
+(for example, `github:org/name#semver:^1.0.0` is displayed as `^1.0.0`).
+The full dependency specifier is preserved when updating `package.json`.
+
 Updated versions are colour‑coded:
  - **Red** → major update
  - **Cyan** → minor update

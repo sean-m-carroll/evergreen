@@ -1,3 +1,5 @@
+import { formatVersion } from './lib/version.mjs';
+
 const RED = '\x1b[31m';
 const CYAN = '\x1b[36m';
 const GREEN = '\x1b[32m';
@@ -33,11 +35,11 @@ const header = () => {
 };
 
 const row = ({ p, result }) => {
-  const coloured = colourVersion(p.update, p.versions.target, result.colour);
+  const coloured = colourVersion(p.update, formatVersion(p.versions.target), result.colour);
   const cooldown = `${p.cooldown}d`;
 
   let line = alignText({ column: 1, text: p.name });
-  line += alignText({ column: 2, text: p.versions.current });
+  line += alignText({ column: 2, text: formatVersion(p.versions.current) });
   line += alignText({ column: 3, text: coloured });
   line += alignText({ column: 4, text: cooldown });
   line += alignText({ column: 5, text: p.update.notes });

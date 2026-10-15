@@ -229,37 +229,64 @@ describe('runCheck', () => {
     consoleLog.mockRestore();
   });
 
-  it('logs install failures and exits', async () => {
+  it('displays GitHub versions without changing dependency specifiers', async () => {
+    const current = 'github:bbc/eslint-config-fabl#semver:^1.0.0';
+    const target = 'github:bbc/eslint-config-fabl#semver:^1.0.1';
     fs.readFileSync.mockReturnValue(
-      JSON.stringify({
-        dependencies: { dependency: '1.0.0' },
-      }),
+      JSON.stringify({ devDependencies: { 'eslint-config-fabl': current } }),
     );
     ncu
-      .mockResolvedValueOnce({ dependency: '1.0.1' })
+      .mockResolvedValueOnce({ 'eslint-config-fabl': target })
       .mockResolvedValueOnce({})
       .mockResolvedValueOnce({});
-    const error = new Error('install failed');
-    execSyncMock.mockImplementation(() => {
-      throw error;
-    });
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const processExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined);
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    const result = await runCheck({
-      install: true,
-      cooldown: 3,
-      cooldownDaysOverride: 3,
-      colour: true,
-    });
+    const result = await runCheck({ update: true, install: true });
 
-    expect(consoleError).toHaveBeenCalledExactlyOnceWith(
-      '  \x1b[31m✗\x1b[0m dependency 1.0.1 failed to install',
+    expect(consoleLog).toHaveBeenCalledExactlyOnceWith(
+      '  \x1b[32m✓\x1b[0m eslint-config-fabl ^1.0.1 successfully installed',
     );
-    expect(processExit).toHaveBeenCalledExactlyOnceWith(1);
-    expect(result.packagesToUpdate).toHaveLength(1);
-
-    consoleError.mockRestore();
-    processExit.mockRestore();
+    expect(result.packagesToUpdate[0].versions).toMatchObject({ current, target });
+    expect(JSON.parse(fs.writeFileSync.mock.calls[0][1])).toStrictEqual({
+      devDependencies: { 'eslint-config-fabl': target },
+    });
+    consoleLog.mockRestore();
   });
+
+  it.each(['', 'github:bbc/eslint-config-fabl#semver:'])(
+    'logs install failures and exits for version prefix "%s"',
+    async (prefix) => {
+      fs.readFileSync.mockReturnValue(
+        JSON.stringify({
+          dependencies: { dependency: '1.0.0' },
+        }),
+      );
+      ncu
+        .mockResolvedValueOnce({ dependency: `${prefix}1.0.1` })
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({});
+      const error = new Error('install failed');
+      execSyncMock.mockImplementation(() => {
+        throw error;
+      });
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const processExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined);
+
+      const result = await runCheck({
+        install: true,
+        cooldown: 3,
+        cooldownDaysOverride: 3,
+        colour: true,
+      });
+
+      expect(consoleError).toHaveBeenCalledExactlyOnceWith(
+        '  \x1b[31m✗\x1b[0m dependency 1.0.1 failed to install',
+      );
+      expect(processExit).toHaveBeenCalledExactlyOnceWith(1);
+      expect(result.packagesToUpdate).toHaveLength(1);
+
+      consoleError.mockRestore();
+      processExit.mockRestore();
+    },
+  );
 });
