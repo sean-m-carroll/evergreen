@@ -25,7 +25,7 @@ describe('cooldown', () => {
   it('ignores cooldown when package name matches an ignoreCooldown rule', () => {
     const config = {
       cooldown: 5,
-      ignoreCooldown: ['^@4t2\/'],
+      ignoreCooldown: ['^@4t2/'],
     }
 
     const result = cooldown({ config, name: '@4t2/tester' });
@@ -36,7 +36,7 @@ describe('cooldown', () => {
   it('returns the default cooldown period from config when package name does not match an ignoreCooldown rule', () => {
     const config = {
       cooldown: 5,
-      ignoreCooldown: ['^@demo\/'],
+      ignoreCooldown: ['^@demo/'],
     }
 
     const result = cooldown({ config, name: '@4t2/tester' });
