@@ -11,17 +11,17 @@ const filterMajor = ({ major, minor, patch }) => {
       const inMinor = minor[name] === version;
       const inPatch = patch[name] === version;
       return !inMinor && !inPatch;
-    })
+    }),
   );
-}
+};
 
 const filterMinor = ({ minor, patch }) => {
   return Object.fromEntries(
     Object.entries(minor).filter(([name, version]) => {
       return !(patch[name] && patch[name] === version);
-    })
+    }),
   );
-}
+};
 
 const isMajorAllowed = () => {
   return false;
@@ -30,7 +30,7 @@ const isMajorAllowed = () => {
 const readPackageJson = () => {
   const pkgPath = path.resolve('package.json');
   return JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-}
+};
 
 export async function runCheck(config) {
   const pkg = readPackageJson();
@@ -55,7 +55,7 @@ export async function runCheck(config) {
 
   const allDeps = {
     ...pkg.dependencies,
-    ...pkg.devDependencies
+    ...pkg.devDependencies,
   };
 
   for (const name of Object.keys(allDeps)) {
@@ -105,7 +105,7 @@ export async function runCheck(config) {
       },
     };
 
-    if ( isMajor || isMinor || isPatch) {
+    if (isMajor || isMinor || isPatch) {
       packagesToUpdate.push(entry);
     }
 
@@ -139,8 +139,6 @@ export async function runCheck(config) {
     fs.writeFileSync(pkgPath, JSON.stringify(updated, null, 2) + '\n');
   }
 
-
-
   if (config.install) {
     // for (const p of packagesToUpdate) {
     //   if (p.depType === 'dependency') {
@@ -160,7 +158,6 @@ export async function runCheck(config) {
 
         // Success message
         console.log(`  \x1b[32m✓\x1b[0m ${p.name} ${p.versions.target} successfully installed`);
-
       } catch {
         // Failure message and script termination
         console.error(`  \x1b[31m✗\x1b[0m ${p.name} ${p.versions.target} failed to install`);
@@ -173,6 +170,6 @@ export async function runCheck(config) {
     cooldownDays: config.cooldownDaysOverride,
     colour: config.colour,
     packagesToUpdate,
-    majorUpdates
+    majorUpdates,
   };
 }

@@ -87,17 +87,25 @@ describe('cli', () => {
     loadConfig.mockReturnValue(baseConfig);
     getNpmMinimumReleaseAge.mockReturnValue(21);
 
-    await expect(main([
-      '--cooldown-days', '9',
-      '--update-package-json',
-      '--install-updates',
-      '--ignore-pattern', '^@scope/',
-      '--ignore-pattern', '^utility$',
-      '--allow-major', 'new-major',
-      '--allow-major', 'another-major',
-      '--disallow-major', 'blocked-major',
-      '--colour=false',
-    ])).resolves.toMatchObject({
+    await expect(
+      main([
+        '--cooldown-days',
+        '9',
+        '--update-package-json',
+        '--install-updates',
+        '--ignore-pattern',
+        '^@scope/',
+        '--ignore-pattern',
+        '^utility$',
+        '--allow-major',
+        'new-major',
+        '--allow-major',
+        'another-major',
+        '--disallow-major',
+        'blocked-major',
+        '--colour=false',
+      ]),
+    ).resolves.toMatchObject({
       cooldownDaysOverride: 9,
       updatePackageJson: true,
       installUpdates: true,

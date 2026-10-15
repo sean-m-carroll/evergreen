@@ -27,7 +27,7 @@ describe('npm-check-update config', () => {
       deprecated: false,
       packageFile: '/mnt/projects/check-updates/package.json',
       removeRange: true,
-      target: 'patch'
+      target: 'patch',
     });
   });
 
@@ -39,7 +39,7 @@ describe('npm-check-update config', () => {
       deprecated: false,
       packageFile: '/mnt/projects/check-updates/package.json',
       removeRange: true,
-      target: 'minor'
+      target: 'minor',
     });
   });
 });

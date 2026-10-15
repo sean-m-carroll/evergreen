@@ -46,9 +46,7 @@ describe('reporter', () => {
         packageEntry('fallback-package', { isFallback: true }),
         packageEntry('plain-package', {}, 'Available'),
       ],
-      majorUpdates: [
-        packageEntry('blocked-package', { isMajor: true, notes: 'Update blocked' }),
-      ],
+      majorUpdates: [packageEntry('blocked-package', { isMajor: true, notes: 'Update blocked' })],
     });
 
     expect(report).toContain('\x1b[31m2.0.0\x1b[0m');

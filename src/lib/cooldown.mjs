@@ -8,7 +8,7 @@ export default ({ config, name }) => {
     if (name.match(regex)) {
       cooldown = 0;
     }
-  })
+  });
 
   return cooldown;
 };

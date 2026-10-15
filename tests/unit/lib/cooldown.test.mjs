@@ -5,7 +5,7 @@ describe('cooldown', () => {
     const config = {
       cooldown: 5,
       ignoreCooldown: [],
-    }
+    };
 
     const result = cooldown({ config, name: 'tester' });
 
@@ -15,7 +15,7 @@ describe('cooldown', () => {
   it('returns the default cooldown period from config when ignoreCooldown is not set', () => {
     const config = {
       cooldown: 5,
-    }
+    };
 
     const result = cooldown({ config, name: 'tester' });
 
@@ -26,7 +26,7 @@ describe('cooldown', () => {
     const config = {
       cooldown: 5,
       ignoreCooldown: ['^@4t2/'],
-    }
+    };
 
     const result = cooldown({ config, name: '@4t2/tester' });
 
@@ -37,7 +37,7 @@ describe('cooldown', () => {
     const config = {
       cooldown: 5,
       ignoreCooldown: ['^@demo/'],
-    }
+    };
 
     const result = cooldown({ config, name: '@4t2/tester' });
 

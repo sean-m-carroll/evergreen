@@ -24,31 +24,22 @@ export async function main(args = hideBin(process.argv)) {
     const mergedConfig = {
       ...baseConfig,
 
-      cooldownDaysOverride:
-        argv.cooldownDays ??
-        baseConfig.cooldownDaysOverride ??
-        npmCooldown,
+      cooldownDaysOverride: argv.cooldownDays ?? baseConfig.cooldownDaysOverride ?? npmCooldown,
 
-      updatePackageJson:
-        argv.updatePackageJson ??
-        baseConfig.updatePackageJson ??
-        false,
+      updatePackageJson: argv.updatePackageJson ?? baseConfig.updatePackageJson ?? false,
 
-      installUpdates:
-        argv.installUpdates ??
-        baseConfig.installUpdates ??
-        false,
+      installUpdates: argv.installUpdates ?? baseConfig.installUpdates ?? false,
 
       ignoreCooldownPatterns: argv.ignorePattern
         ? argv.ignorePattern.map((p) => new RegExp(p))
-        : baseConfig.ignoreCooldownPatterns ?? [],
+        : (baseConfig.ignoreCooldownPatterns ?? []),
 
       majorRules: {
         allow: argv.allowMajor ?? baseConfig.majorRules.allow ?? [],
-        disallow: argv.disallowMajor ?? baseConfig.majorRules.disallow ?? []
+        disallow: argv.disallowMajor ?? baseConfig.majorRules.disallow ?? [],
       },
 
-      colour: argv.colour ?? baseConfig.colour ?? true
+      colour: argv.colour ?? baseConfig.colour ?? true,
     };
 
     // ⭐ Correct test-mode detection
@@ -60,7 +51,6 @@ export async function main(args = hideBin(process.argv)) {
     // Normal CLI mode
     const result = await runCheck(mergedConfig);
     printReport(result);
-
   } catch (err) {
     console.error('Error:', err);
     process.exit(1);

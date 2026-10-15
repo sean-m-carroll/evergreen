@@ -35,10 +35,12 @@ vi.mock('../../src/lib/ncu-config.mjs', () => ({
 describe('runCheck', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    fs.readFileSync.mockReturnValue(JSON.stringify({
-      dependencies: {},
-      devDependencies: {},
-    }));
+    fs.readFileSync.mockReturnValue(
+      JSON.stringify({
+        dependencies: {},
+        devDependencies: {},
+      }),
+    );
     ncuConfig.mockImplementation(({ target } = {}) => ({ target }));
     cooldownPeriod.mockReturnValue(7);
   });
@@ -60,7 +62,7 @@ describe('runCheck', () => {
       .mockResolvedValueOnce({ patch: '1.0.1', shared: '1.0.1' })
       .mockResolvedValueOnce({ minor: '1.1.0', shared: '1.0.1' })
       .mockResolvedValueOnce({ major: '2.0.0', minor: '1.1.0', patch: '1.0.1' });
-    cooldownPeriod.mockImplementation(({ name }) => name === 'patch' ? 0 : 7);
+    cooldownPeriod.mockImplementation(({ name }) => (name === 'patch' ? 0 : 7));
 
     const result = await runCheck({ cooldownDaysOverride: 7, colour: false });
 
@@ -142,9 +144,11 @@ describe('runCheck', () => {
   });
 
   it('falls back major updates to a minor or patch version', async () => {
-    fs.readFileSync.mockReturnValue(JSON.stringify({
-      dependencies: { fallback: '1.0.0' },
-    }));
+    fs.readFileSync.mockReturnValue(
+      JSON.stringify({
+        dependencies: { fallback: '1.0.0' },
+      }),
+    );
     ncu
       .mockResolvedValueOnce({})
       .mockResolvedValueOnce({ fallback: '1.1.0' })
@@ -189,10 +193,14 @@ describe('runCheck', () => {
 
     expect(fs.writeFileSync).toHaveBeenCalledExactlyOnceWith(
       '/mnt/projects/check-updates/package.json',
-      `${JSON.stringify({
-        dependencies: { dependency: '1.0.1' },
-        devDependencies: { devDependency: '1.0.1' },
-      }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          dependencies: { dependency: '1.0.1' },
+          devDependencies: { devDependency: '1.0.1' },
+        },
+        null,
+        2,
+      )}\n`,
     );
   });
 
@@ -222,9 +230,11 @@ describe('runCheck', () => {
   });
 
   it('logs install failures and exits', async () => {
-    fs.readFileSync.mockReturnValue(JSON.stringify({
-      dependencies: { dependency: '1.0.0' },
-    }));
+    fs.readFileSync.mockReturnValue(
+      JSON.stringify({
+        dependencies: { dependency: '1.0.0' },
+      }),
+    );
     ncu
       .mockResolvedValueOnce({ dependency: '1.0.1' })
       .mockResolvedValueOnce({})
@@ -236,7 +246,12 @@ describe('runCheck', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const processExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined);
 
-    const result = await runCheck({ install: true, cooldown: 3, cooldownDaysOverride: 3, colour: true });
+    const result = await runCheck({
+      install: true,
+      cooldown: 3,
+      cooldownDaysOverride: 3,
+      colour: true,
+    });
 
     expect(consoleError).toHaveBeenCalledExactlyOnceWith(
       '  \x1b[31m✗\x1b[0m dependency 1.0.1 failed to install',
