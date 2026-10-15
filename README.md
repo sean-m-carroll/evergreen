@@ -1,4 +1,4 @@
-# Check Updates
+# Evergreen
 
 A Node.js CLI tool that checks your project’s dependencies using **[npm-check-updates](https://github.com/raineorshine/npm-check-updates)**, applies **cooldown rules**, enforces **major‑update policies**, and prints a **colour‑coded, column‑formatted report** showing which packages can be safely updated.
 
