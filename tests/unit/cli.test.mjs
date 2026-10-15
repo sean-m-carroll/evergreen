@@ -42,6 +42,16 @@ describe('cli', () => {
     expect(printReport).not.toHaveBeenCalled();
   });
 
+  it('defaults missing major rule lists to empty arrays', async () => {
+    const baseConfig = { majorRules: {} };
+    loadConfig.mockReturnValue(baseConfig);
+    getNpmMinimumReleaseAge.mockReturnValue(7);
+
+    await expect(main([])).resolves.toMatchObject({
+      majorRules: { allow: [], disallow: [] },
+    });
+  });
+
   it('preserves config values when CLI options are omitted', async () => {
     const baseConfig = {
       cooldownDaysOverride: 3,
