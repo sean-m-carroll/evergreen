@@ -3,6 +3,10 @@ import ncu from 'npm-check-updates';
 import cooldownPeriod from '../../src/lib/cooldown.mjs';
 import ncuConfig from '../../src/lib/ncu-config.mjs';
 import { runCheck } from '../../src/runner.mjs';
+import { formatReport } from '../../src/reporter.mjs';
+
+const fileEntry = (name) => ({ name, isFile: () => true, isDirectory: () => false });
+const directoryEntry = (name) => ({ name, isFile: () => false, isDirectory: () => true });
 
 const { execSyncMock } = vi.hoisted(() => ({
   execSyncMock: vi.fn(),
@@ -11,6 +15,7 @@ const { execSyncMock } = vi.hoisted(() => ({
 vi.mock('fs', () => ({
   default: {
     readFileSync: vi.fn(),
+    readdirSync: vi.fn(),
     writeFileSync: vi.fn(),
   },
 }));
@@ -35,6 +40,9 @@ vi.mock('../../src/lib/ncu-config.mjs', () => ({
 describe('runCheck', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    fs.readdirSync.mockReturnValue([
+      { name: 'package.json', isFile: () => true, isDirectory: () => false },
+    ]);
     fs.readFileSync.mockReturnValue(
       JSON.stringify({
         dependencies: {},
@@ -221,9 +229,11 @@ describe('runCheck', () => {
 
     expect(execSyncMock).toHaveBeenNthCalledWith(1, 'npm i dependency --min-release-age=3', {
       stdio: 'ignore',
+      cwd: '/mnt/projects/evergreen',
     });
     expect(execSyncMock).toHaveBeenNthCalledWith(2, 'npm i -D devDependency --min-release-age=3', {
       stdio: 'ignore',
+      cwd: '/mnt/projects/evergreen',
     });
     expect(consoleLog).toHaveBeenCalledTimes(2);
     consoleLog.mockRestore();
@@ -251,6 +261,126 @@ describe('runCheck', () => {
       devDependencies: { 'eslint-config-fabl': target },
     });
     consoleLog.mockRestore();
+  });
+
+  it('checks, updates, and installs each manifest independently while skipping node_modules and symlinks', async () => {
+    const root = '/mnt/projects/evergreen';
+    const manifests = {
+      [`${root}/package.json`]: { dependencies: { shared: '1.0.0' } },
+      [`${root}/packages/a/package.json`]: { devDependencies: { shared: '3.0.0' } },
+      [`${root}/packages/b/deep/package.json`]: { dependencies: { shared: '5.0.0' } },
+    };
+    const directories = {
+      [root]: [
+        directoryEntry('node_modules'),
+        directoryEntry('packages'),
+        fileEntry('package.json'),
+        fileEntry('README.md'),
+        { name: 'linked', isFile: () => false, isDirectory: () => false },
+      ],
+      [`${root}/packages`]: [directoryEntry('b'), directoryEntry('a')],
+      [`${root}/packages/a`]: [fileEntry('package.json'), directoryEntry('node_modules')],
+      [`${root}/packages/b`]: [directoryEntry('deep')],
+      [`${root}/packages/b/deep`]: [fileEntry('package.json')],
+    };
+    fs.readdirSync.mockImplementation((directory) => {
+      if (!(directory in directories)) throw new Error(`Unexpected traversal: ${directory}`);
+      return directories[directory];
+    });
+    fs.readFileSync.mockImplementation((file) => JSON.stringify(manifests[file]));
+    ncu.mockImplementation(async ({ packageFile, target }) => {
+      const pkg = manifests[packageFile];
+      const current = (pkg.dependencies ?? pkg.devDependencies).shared;
+      return { shared: target ? current.replace(/0$/, '1') : `${Number(current[0]) + 1}.0.0` };
+    });
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const result = await runCheck({ updatePackageJson: true, installUpdates: true, colour: false });
+
+    expect(ncu).toHaveBeenCalledTimes(9);
+    expect(fs.readdirSync.mock.calls.map(([directory]) => directory)).toStrictEqual([
+      root,
+      `${root}/packages`,
+      `${root}/packages/a`,
+      `${root}/packages/b`,
+      `${root}/packages/b/deep`,
+    ]);
+    const files = Object.keys(manifests);
+    expect(result.packagesToUpdate.map((entry) => entry.packageFile)).toStrictEqual(files);
+    expect(result.majorUpdates.map((entry) => entry.packageFile)).toStrictEqual(files);
+    for (const [index, file] of files.entries()) {
+      const cwd = file.slice(0, file.lastIndexOf('/'));
+      const pkg = manifests[file];
+      const section = pkg.dependencies ? 'dependencies' : 'devDependencies';
+      const current = pkg[section].shared;
+      expect(ncu).toHaveBeenNthCalledWith(index * 3 + 1, {
+        target: 'patch',
+        packageFile: file,
+        cwd,
+      });
+      expect(result.packagesToUpdate[index]).toMatchObject({
+        versions: { current, target: current.replace(/0$/, '1') },
+        update: { notes: `Fallback update; File: ${file.slice(root.length + 1)}` },
+      });
+      expect(fs.writeFileSync).toHaveBeenNthCalledWith(
+        index + 1,
+        file,
+        `${JSON.stringify({ [section]: { shared: current.replace(/0$/, '1') } }, null, 2)}\n`,
+      );
+      expect(execSyncMock).toHaveBeenNthCalledWith(
+        index + 1,
+        `npm i ${section === 'devDependencies' ? '-D ' : ''}shared --min-release-age=7`,
+        { stdio: 'ignore', cwd },
+      );
+      expect(formatReport(result)).toContain(`File: ${file.slice(root.length + 1)}`);
+    }
+    consoleLog.mockRestore();
+  });
+
+  it('checks nested manifests when the current directory has no package.json', async () => {
+    fs.readdirSync
+      .mockReturnValueOnce([directoryEntry('child')])
+      .mockReturnValueOnce([fileEntry('package.json')]);
+    fs.readFileSync.mockReturnValue(JSON.stringify({ dependencies: { dependency: '1.0.0' } }));
+    ncu.mockResolvedValue({ dependency: '1.0.1' });
+
+    const result = await runCheck({});
+
+    expect(result.packagesToUpdate[0]).toMatchObject({
+      packageFile: '/mnt/projects/evergreen/child/package.json',
+      update: { notes: 'File: child/package.json' },
+    });
+    expect(ncu).toHaveBeenCalledWith({
+      target: 'patch',
+      packageFile: '/mnt/projects/evergreen/child/package.json',
+      cwd: '/mnt/projects/evergreen/child',
+    });
+    expect(fs.writeFileSync).not.toHaveBeenCalled();
+    expect(execSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('reports an error when no package.json files are found', async () => {
+    fs.readdirSync.mockReturnValue([directoryEntry('node_modules')]);
+
+    await expect(runCheck({})).rejects.toThrow('No package.json files found');
+    expect(ncu).not.toHaveBeenCalled();
+  });
+
+  it('propagates directory read errors', async () => {
+    const error = new Error('Permission denied');
+    fs.readdirSync.mockImplementation(() => {
+      throw error;
+    });
+
+    await expect(runCheck({})).rejects.toBe(error);
+    expect(ncu).not.toHaveBeenCalled();
+  });
+
+  it('propagates invalid manifest errors', async () => {
+    fs.readFileSync.mockReturnValue('not json');
+
+    await expect(runCheck({})).rejects.toThrow(SyntaxError);
+    expect(ncu).not.toHaveBeenCalled();
   });
 
   it.each(['', 'github:bbc/eslint-config-fabl#semver:'])(

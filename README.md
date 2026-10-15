@@ -40,6 +40,13 @@ npx evergreen
 evergreen
 ```
 
+Evergreen searches the current directory and all subdirectories for `package.json`
+files, skipping every `node_modules` directory and not following directory symlinks.
+Each manifest is checked and updated independently; installations run in its own
+directory. When multiple manifests are found (or only a nested manifest exists),
+report notes identify the source file. A root `package.json` is not required.
+An error is reported if no manifests are found.
+
 #### With flags
 ```
 evergreen --cooldown-days 7 --update-package-json

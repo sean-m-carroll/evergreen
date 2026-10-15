@@ -28,27 +28,71 @@ const isMajorAllowed = () => {
   return false;
 };
 
-const readPackageJson = () => {
-  const pkgPath = path.resolve('package.json');
-  return JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+const findPackageFiles = (directory) => {
+  const entries = fs.readdirSync(directory, { withFileTypes: true });
+  const files = entries
+    .filter((entry) => entry.isFile() && entry.name === 'package.json')
+    .map((entry) => path.join(directory, entry.name));
+
+  for (const entry of entries
+    .filter((entry) => entry.isDirectory() && entry.name !== 'node_modules')
+    .sort((a, b) => a.name.localeCompare(b.name))) {
+    files.push(...findPackageFiles(path.join(directory, entry.name)));
+  }
+
+  return files;
 };
 
 export async function runCheck(config) {
-  const pkg = readPackageJson();
+  const root = process.cwd();
+  const packageFiles = findPackageFiles(root);
+  if (packageFiles.length === 0) {
+    throw new Error(`No package.json files found in ${root} or its subdirectories.`);
+  }
+
+  const result = {
+    cooldownDays: config.cooldownDaysOverride,
+    colour: config.colour,
+    packagesToUpdate: [],
+    majorUpdates: [],
+  };
+
+  for (const packageFile of packageFiles) {
+    const checked = await checkPackage(config, packageFile);
+    for (const key of ['packagesToUpdate', 'majorUpdates']) {
+      for (const entry of checked[key]) {
+        if (packageFiles.length > 1 || path.dirname(packageFile) !== root) {
+          entry.packageFile = packageFile;
+          entry.update.notes = [entry.update.notes, `File: ${path.relative(root, packageFile)}`]
+            .filter(Boolean)
+            .join('; ');
+        }
+        result[key].push(entry);
+      }
+    }
+  }
+
+  return result;
+}
+
+async function checkPackage(config, packageFile) {
+  const pkg = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
+  const cwd = path.dirname(packageFile);
+  const check = (options) => ncu({ ...options, packageFile, cwd });
 
   // 1️⃣ Patch versions
   const patchConfig = ncuConfig({ config, target: 'patch' });
-  const patchSafe = await ncu(patchConfig);
+  const patchSafe = await check(patchConfig);
   const patchVersions = patchSafe;
 
   // 2️⃣ Minor versions
   const minorConfig = ncuConfig({ config, target: 'minor' });
-  const minorSafe = await ncu(minorConfig);
+  const minorSafe = await check(minorConfig);
   const minorVersions = filterMinor({ patch: patchSafe, minor: minorSafe });
 
   // 3️⃣ Major versions
   const majorConfig = ncuConfig({ config });
-  const majorSafe = await ncu(majorConfig);
+  const majorSafe = await check(majorConfig);
   const majorVersions = filterMajor({ major: majorSafe, minor: minorSafe, patch: patchSafe });
 
   const packagesToUpdate = [];
@@ -125,8 +169,7 @@ export async function runCheck(config) {
     }
   }
 
-  if (config.update) {
-    const pkgPath = path.resolve('package.json');
+  if (config.updatePackageJson ?? config.update) {
     const updated = { ...pkg };
 
     for (const p of packagesToUpdate) {
@@ -137,10 +180,10 @@ export async function runCheck(config) {
       }
     }
 
-    fs.writeFileSync(pkgPath, JSON.stringify(updated, null, 2) + '\n');
+    fs.writeFileSync(packageFile, JSON.stringify(updated, null, 2) + '\n');
   }
 
-  if (config.install) {
+  if (config.installUpdates ?? config.install) {
     // for (const p of packagesToUpdate) {
     //   if (p.depType === 'dependency') {
     //     execSync(`npm i ${p.name} --min-release-age=${p.cooldown}`, { stdio: 'inherit' });
@@ -152,9 +195,9 @@ export async function runCheck(config) {
     for (const p of packagesToUpdate) {
       try {
         if (p.depType === 'dependency') {
-          execSync(`npm i ${p.name} --min-release-age=${p.cooldown}`, { stdio: 'ignore' });
+          execSync(`npm i ${p.name} --min-release-age=${p.cooldown}`, { stdio: 'ignore', cwd });
         } else {
-          execSync(`npm i -D ${p.name} --min-release-age=${p.cooldown}`, { stdio: 'ignore' });
+          execSync(`npm i -D ${p.name} --min-release-age=${p.cooldown}`, { stdio: 'ignore', cwd });
         }
 
         // Success message
