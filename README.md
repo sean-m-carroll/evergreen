@@ -14,22 +14,22 @@ A Node.js CLI tool that checks your project’s dependencies using **[npm-check-
 #### Global install
 
 ```bash
-npm install -g @4t2/check-updates
+npm install -g @4t2/evergreen
 ```
 
 Run globally:
 ```bash
-check-updates
+evergreen
 ```
 
 #### Local install
 ```bash
-npm install @4t2/check-updates
+npm install @4t2/evergreen
 ```
 
 Run locally:
 ```bash
-npx check-updates
+npx evergreen
 ```
 
 
@@ -37,17 +37,17 @@ npx check-updates
 
 #### Basic usage
 ```
-check-updates
+evergreen
 ```
 
 #### With flags
 ```
-check-updates --cooldown-days 7 --update-package-json
+evergreen --cooldown-days 7 --update-package-json
 ```
 
 #### With a config file
 ```
-check-updates --config check-updates.config.json
+evergreen --config evergreen.config.json
 ```
 
 
@@ -138,7 +138,7 @@ Useful for CI environments where ANSI colours are stripped.
 
 
 ## 📄 Example Config File
-Save as `check-updates.config.json`:
+Save as `evergreen.config.json`:
 ```json
 {
   "cooldownDaysOverride": 10,
@@ -155,7 +155,7 @@ Save as `check-updates.config.json`:
 
 Use it:
 ```bash
-check-updates --config check-updates.config.json
+evergreen --config evergreen.config.json
 ```
 
 
@@ -174,7 +174,7 @@ Updated versions are colour‑coded:
 
 Disable colours:
 ```bash
-check-updates --no-colour
+evergreen --no-colour
 ```
 
 
@@ -200,7 +200,7 @@ npm link
 
 Run CLI:
 ```bash
-check-updates
+evergreen
 ```
 
 Useful for testing before publishing.

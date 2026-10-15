@@ -11,7 +11,7 @@ describe('npm-check-update config', () => {
     expect(result).toStrictEqual({
       cooldown: expect.any(Function),
       deprecated: false,
-      packageFile: '/mnt/projects/check-updates/package.json',
+      packageFile: '/mnt/projects/evergreen/package.json',
       removeRange: true,
     });
 
@@ -25,7 +25,7 @@ describe('npm-check-update config', () => {
     expect(result).toStrictEqual({
       cooldown: expect.any(Function),
       deprecated: false,
-      packageFile: '/mnt/projects/check-updates/package.json',
+      packageFile: '/mnt/projects/evergreen/package.json',
       removeRange: true,
       target: 'patch',
     });
@@ -37,7 +37,7 @@ describe('npm-check-update config', () => {
     expect(result).toStrictEqual({
       cooldown: expect.any(Function),
       deprecated: false,
-      packageFile: '/mnt/projects/check-updates/package.json',
+      packageFile: '/mnt/projects/evergreen/package.json',
       removeRange: true,
       target: 'minor',
     });

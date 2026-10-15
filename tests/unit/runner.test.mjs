@@ -192,7 +192,7 @@ describe('runCheck', () => {
     await runCheck({ update: true, cooldownDaysOverride: 7, colour: true });
 
     expect(fs.writeFileSync).toHaveBeenCalledExactlyOnceWith(
-      '/mnt/projects/check-updates/package.json',
+      '/mnt/projects/evergreen/package.json',
       `${JSON.stringify(
         {
           dependencies: { dependency: '1.0.1' },

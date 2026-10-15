@@ -6,7 +6,7 @@ vi.mock('fs', () => ({
   default: { readFileSync: vi.fn() },
 }));
 
-describe('check-updates config', () => {
+describe('evergreen config', () => {
   beforeEach(() => {
     fs.readFileSync.mockReset();
   });
